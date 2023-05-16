@@ -1,5 +1,5 @@
 ---
-name: 06 Build and Scan
+name: 01 Basic Docker Bui
 
 on:
   push:
@@ -9,11 +9,13 @@ on:
 
 jobs:
   build-image:
-    name: Build Images
+    name: Build Image
     runs-on: ubuntu-latest
-    
-    steps:
 
+    permissions:
+      pull-requests: write # needed to create and update comments in PRs
+
+    steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -26,17 +28,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and export to Docker
-        uses: docker/build-push-action@v4
-        with:
-          push: false
-          load: true # Export to Docker Engine rather than pushing to a registry
-          tags: ${{ github.run_id }}
-          target: test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
-
 #NEW: (START) ##########################################################
       - name: Run Trivy for all CVEs (non-blocking)
         uses: aquasecurity/trivy-action@master
@@ -46,7 +37,7 @@ jobs:
           format: table 
 #NEW: (END) ############################################################
 
-      - name: Docker Metadata for Final Image Build
+      - name: Docker meta
         id: docker_meta
         uses: docker/metadata-action@v4
         with:
@@ -60,8 +51,8 @@ jobs:
           # type=ref,event=pr
           # type=ref,event=branch
           # type=semver,pattern={{version}}
-      
-      - name: Docker Build and Push to Docker Hub
+          
+      - name: Docker build
         uses: docker/build-push-action@v4
         with:
           push: true
@@ -70,6 +61,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64,linux/arm/v7
+
 #NEW: (START) ##########################################################
       - name: Run Trivy for all CVEs (non-blocking)
         uses: aquasecurity/trivy-action@master
