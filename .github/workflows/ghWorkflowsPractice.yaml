@@ -1,5 +1,5 @@
 ---
-name: 01 Basic Docker Build
+name: 06 Build and Scan
 
 on:
   push:
@@ -9,13 +9,11 @@ on:
 
 jobs:
   build-image:
-    name: Build Image
+    name: Build Images
     runs-on: ubuntu-latest
-
-    permissions:
-      pull-requests: write # needed to create and update comments in PRs
     
     steps:
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -48,7 +46,7 @@ jobs:
           format: table 
 #NEW: (END) ############################################################
 
-      - name: Docker meta
+      - name: Docker Metadata for Final Image Build
         id: docker_meta
         uses: docker/metadata-action@v4
         with:
@@ -62,8 +60,8 @@ jobs:
           # type=ref,event=pr
           # type=ref,event=branch
           # type=semver,pattern={{version}}
-          
-      - name: Docker build
+      
+      - name: Docker Build and Push to Docker Hub
         uses: docker/build-push-action@v4
         with:
           push: true
