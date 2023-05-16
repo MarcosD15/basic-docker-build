@@ -7,12 +7,15 @@ on:
       - main
   pull_request:
 
-
-
 jobs:
   build-image:
     name: Build Image
     runs-on: ubuntu-latest
+
+#NEW: (START) ##########################################################
+    permissions:
+      pull-requests: write # needed to create and update comments in PRs
+#NEW: (END) ############################################################
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
