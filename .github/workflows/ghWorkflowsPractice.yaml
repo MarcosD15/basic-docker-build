@@ -12,10 +12,9 @@ jobs:
     name: Build Image
     runs-on: ubuntu-latest
 
-#NEW: (START) ##########################################################
     permissions:
       pull-requests: write # needed to create and update comments in PRs
-#NEW: (END) ############################################################
+    
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -29,6 +28,25 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Build and export to Docker
+        uses: docker/build-push-action@v4
+        with:
+          push: false
+          load: true # Export to Docker Engine rather than pushing to a registry
+          tags: ${{ github.run_id }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+#NEW: (START) ##########################################################
+      - name: Run Trivy for all CVEs (non-blocking)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ github.run_id }}
+          exit-code: 0
+          format: table 
+#NEW: (END) ############################################################
+
       - name: Docker meta
         id: docker_meta
         uses: docker/metadata-action@v4
@@ -37,24 +55,32 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=04
-            type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
-            type=ref,event=pr
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-      
+            type=raw,value=06
+          # comment these out on all but 04-add-metadata.yaml to avoid overwriting image tags
+          # type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
+          # type=ref,event=pr
+          # type=ref,event=branch
+          # type=semver,pattern={{version}}
+          
       - name: Docker build
         uses: docker/build-push-action@v4
         with:
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
-
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64,linux/arm/v7
 
 #NEW: (START) ##########################################################
+      - name: Run Trivy for all CVEs (non-blocking)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ github.run_id }}
+          exit-code: 0
+          format: table 
+#NEW: (END) ############################################################
+
         # If PR, put image tags in the PR comments
         # from https://github.com/marketplace/actions/create-or-update-comment
       - name: Find comment for image tags
@@ -84,4 +110,3 @@ jobs:
             ${{ steps.docker_meta.outputs.labels }}
             ```
           edit-mode: replace
-#NEW: (END) ############################################################
